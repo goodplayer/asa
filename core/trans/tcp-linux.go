@@ -128,6 +128,8 @@ func (this tcpTransImpl) NewListener(proto, addr string, config TcpTransConfig) 
 		return nil, err
 	}
 
+	defer syscall.Close(s)
+
 	return net.FileListener(os.NewFile(uintptr(s), fmt.Sprintf("asa-trans-reuseport.%d.%s.%s", os.Getpid(), proto, addr)))
 }
 
