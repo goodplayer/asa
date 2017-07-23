@@ -1,0 +1,5 @@
+core/trans reuseport:
+  linux: 3.9
+  freebsd: 10
+core/proto/http http https:
+  golang: 1.8
