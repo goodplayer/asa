@@ -11,6 +11,7 @@ func init() {
 	httpVarMap = make(map[string]func(*http.Request) string)
 	httpVarMap["remote_addr"] = remoteAddr
 	httpVarMap["http_proxy_add_x_forwarded_for"] = xForwardedFor
+	httpVarMap["http_host"] = httpHost
 }
 
 func GetAllHttpInRaw() map[string]func(*http.Request) string {
@@ -28,6 +29,10 @@ func xForwardedFor(r *http.Request) string {
 	} else {
 		return forwarded + ", " + forwarded
 	}
+}
+
+func httpHost(r *http.Request) string {
+	return r.Host
 }
 
 func stripPort(hostport string) string {

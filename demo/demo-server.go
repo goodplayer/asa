@@ -27,6 +27,7 @@ func main() {
 				newMap := make(map[string]string)
 				newMap["X-Real-IP"] = m["remote_addr"](r)
 				newMap["X-Forwarded-For"] = m["http_proxy_add_x_forwarded_for"](r)
+				newMap["Host"] = m["http_host"](r)
 				return newMap
 			},
 			"__default__": func(r *http.Request) map[string]string {
@@ -34,6 +35,7 @@ func main() {
 				newMap := make(map[string]string)
 				newMap["X-Real-IP"] = m["remote_addr"](r)
 				newMap["X-Forwarded-For"] = m["http_proxy_add_x_forwarded_for"](r)
+				newMap["Host"] = m["http_host"](r)
 				return newMap
 			},
 		},

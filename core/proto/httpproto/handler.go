@@ -5,8 +5,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/goodplayer/asa/core/upstream"
+	"github.com/goodplayer/asa/util"
 )
 
 type HttpProxyHandler struct {
@@ -20,6 +22,8 @@ func (this *HttpProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		reqHost = urla.Hostname()
 	}
 
+	reqTime := time.Now()
+
 	ups, ok := this.UpstreamMap[reqHost]
 	if !ok {
 		ups, ok = this.UpstreamMap["__default__"]
@@ -28,8 +32,8 @@ func (this *HttpProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	//TODO select tcp
-	conn, err := ups.SelectTcp(0, false)
+	// select tcp
+	conn, err := ups.SelectTcp(util.HashIntInt(reqTime.Nanosecond()), false)
 	if err != nil {
 		panic(err)
 	}
@@ -53,16 +57,18 @@ func (this *HttpProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 	// add new header k/v to reqHeader
 	var newReqHeaderMap map[string]string
-	newReqHeaderMapFunc, ok := this.Config.Header[reqHost]
-	if !ok {
-		newReqHeaderMapFunc, ok = this.Config.Header["__default__"]
+	newReqHeaderMapFunc, newReqHeaderOk := this.Config.Header[reqHost]
+	if !newReqHeaderOk {
+		newReqHeaderMapFunc, newReqHeaderOk = this.Config.Header["__default__"]
 	}
-	if ok {
+	if newReqHeaderOk {
 		newReqHeaderMap = newReqHeaderMapFunc(r)
 		for k, v := range newReqHeaderMap {
 			proxyHeader.Set(k, v)
 		}
 	}
+	//TODO other header options
+	reqProxy.Host = newReqHeaderMap["Host"]
 
 	resp, err := http.DefaultClient.Do(reqProxy)
 	if err != nil {
