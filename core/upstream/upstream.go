@@ -8,9 +8,10 @@ import (
 )
 
 type Upstream struct {
-	Key      string
-	List     []string
-	Strategy string
+	Key         string
+	List        []string
+	Strategy    string
+	DialTimeOut int
 }
 
 type UpstreamTcpConn struct {
@@ -22,6 +23,18 @@ type UpstreamTcpConn struct {
 type UpstreamUdpConn struct {
 	id int
 	*net.UDPConn
+	Addr string
+}
+
+type UpstreamTypeStream struct {
+	id int
+	net.Conn
+	Addr string
+}
+
+type UpstreamTypeDgram struct {
+	id int
+	net.PacketConn
 	Addr string
 }
 
@@ -66,5 +79,23 @@ func (this *Upstream) SelectUdp(key int, dial bool) (UpstreamUdpConn, error) {
 }
 
 func (this *Upstream) RecycleUdp(udpConn UpstreamUdpConn) {
+	//TODO
+}
+
+func (this *Upstream) SelectStream(key int, dial bool) (*UpstreamTypeStream, error) {
+	//TODO
+	return nil, nil
+}
+
+func (this *Upstream) RecycleStream(conn *UpstreamTypeStream) {
+	//TODO
+}
+
+func (this *Upstream) SelectDgram(key int, dial bool) (*UpstreamTypeDgram, error) {
+	//TODO
+	return nil, nil
+}
+
+func (this *Upstream) RecycleDgram(conn *UpstreamTypeDgram) {
 	//TODO
 }
