@@ -1,0 +1,15 @@
+generate certificate for golang:
+
+1a. rsa type private key:
+openssl genrsa -out private_rsa.key 4096
+1b. self signed certificate:
+openssl req -new -key private_rsa.key -out rsa_server.csr
+openssl x509 -req -days 3650 -in rsa_server.csr -signkey private_rsa.key -out rsa_server.crt
+
+2a. ecdsa type private key:
+openssl ecparam -genkey -name secp384r1 -out private_ecdsa_for_crt.key
+#openssl ecparam -genkey -name secp384r1 -outform DER -noout -out private_ecdsa.der
+openssl ec -in private_ecdsa_for_crt.key -outform DER -out private_ecdsa.der
+2b. self signed certificate:
+openssl req -new -key private_ecdsa_for_crt.key -out ecdsa_server.csr
+openssl x509 -req -days 3650 -in ecdsa_server.csr -signkey private_ecdsa_for_crt.key -out ecdsa_server.crt

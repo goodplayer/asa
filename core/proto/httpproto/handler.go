@@ -2,105 +2,51 @@ package httpproto
 
 import (
 	"errors"
-	"io"
 	"net/http"
-	"net/url"
-	"time"
 
-	"github.com/goodplayer/asa/core/upstream"
+	"github.com/goodplayer/asa/constant"
+	"github.com/goodplayer/asa/core/proto/httpproto/vhost"
 	"github.com/goodplayer/asa/util"
 )
 
 type HttpProxyHandler struct {
-	UpstreamMap map[string]*upstream.Upstream
-	Config      HttpHandlerConfig
+	HttpProxyClient *http.Client
+	VhostMap        map[string]*vhost.Vhost
 }
 
 func (this *HttpProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	reqHost := r.Host
-	if urla, err := url.Parse("http://" + reqHost); err == nil {
-		reqHost = urla.Hostname()
-	}
+	reqHost := util.SplitHost(r.Host)
 
-	reqTime := time.Now()
-
-	ups, ok := this.UpstreamMap[reqHost]
+	vh, ok := this.VhostMap[reqHost]
 	if !ok {
-		ups, ok = this.UpstreamMap["__default__"]
+		vh, ok = this.VhostMap[constant.DefaultServerName]
 		if !ok {
 			panic(errors.New("no upstream mapped - httpproto"))
 		}
 	}
 
-	// select tcp
-	conn, err := ups.SelectTcp(util.HashIntInt(reqTime.Nanosecond()), false)
-	if err != nil {
-		panic(err)
+	url := r.URL
+	path := url.Path // decode & dereference, not combine slash
+	// URI processing
+	internalRewriteUri := vh.InternalRewriteUri(path)
+	redirectUrl, ok, statusCode := vh.Rewrite(internalRewriteUri)
+	if ok {
+		http.Redirect(w, r, redirectUrl, statusCode)
+		return
 	}
+	finalUri := normalizeUri(internalRewriteUri) // %xx / reference / slash
 
-	//TODO support http/https/etc.
-	reqProxy, err := http.NewRequest(r.Method, "http://"+conn.Addr, r.Body)
-	if err != nil {
-		panic(err)
-	}
-	proxyHeader := reqProxy.Header
-	// request header
-	reqHeader := r.Header
-	for k, v := range reqHeader {
-		for idx, d := range v {
-			if idx > 0 {
-				proxyHeader.Add(k, d)
-			} else {
-				proxyHeader.Set(k, d)
-			}
-		}
-	}
-	// add new header k/v to reqHeader
-	var newReqHeaderMap map[string]string
-	newReqHeaderMapFunc, newReqHeaderOk := this.Config.Header[reqHost]
-	if !newReqHeaderOk {
-		newReqHeaderMapFunc, newReqHeaderOk = this.Config.Header["__default__"]
-	}
-	if newReqHeaderOk {
-		newReqHeaderMap = newReqHeaderMapFunc(r)
-		for k, v := range newReqHeaderMap {
-			proxyHeader.Set(k, v)
-		}
-	}
-	//TODO other header options
-	reqProxy.Host = newReqHeaderMap["Host"]
+	proxyFunc := vh.Location(finalUri)
 
-	resp, err := http.DefaultClient.Do(reqProxy)
-	if err != nil {
-		panic(err)
+	if proxyFunc != nil {
+		proxyFunc(w, r)
+	} else {
+		// 404
+		w.WriteHeader(http.StatusNotFound)
 	}
-	defer func() {
-		body := resp.Body
-		if body != nil {
-			body.Close()
-		}
-	}()
+}
 
-	respHeader := resp.Header
-	header := w.Header()
-
-	// add new header k/v to reqHeader
-	header.Set("Server", "asa")
-
-	// response header
-	for k, v := range respHeader {
-		for idx, d := range v {
-			if idx > 0 {
-				header.Add(k, d)
-			} else {
-				header.Set(k, d)
-			}
-		}
-	}
-
-	//TODO custom buffer size
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		panic(err)
-	}
+func normalizeUri(uri string) string {
+	//TODO normalize uri
+	return uri
 }

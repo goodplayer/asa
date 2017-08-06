@@ -2,7 +2,8 @@ package varfunc
 
 import (
 	"net/http"
-	"strings"
+
+	"github.com/goodplayer/asa/util"
 )
 
 var httpVarMap map[string]func(*http.Request) string
@@ -19,13 +20,13 @@ func GetAllHttpInRaw() map[string]func(*http.Request) string {
 }
 
 func remoteAddr(r *http.Request) string {
-	return stripPort(r.RemoteAddr)
+	return util.SplitHost(r.RemoteAddr)
 }
 
 func xForwardedFor(r *http.Request) string {
 	forwarded := r.Header.Get("X-Forwarded-For")
 	if forwarded == "" {
-		return stripPort(r.RemoteAddr)
+		return util.SplitHost(r.RemoteAddr)
 	} else {
 		return forwarded + ", " + forwarded
 	}
@@ -33,15 +34,4 @@ func xForwardedFor(r *http.Request) string {
 
 func httpHost(r *http.Request) string {
 	return r.Host
-}
-
-func stripPort(hostport string) string {
-	colon := strings.IndexByte(hostport, ':')
-	if colon == -1 {
-		return hostport
-	}
-	if i := strings.IndexByte(hostport, ']'); i != -1 {
-		return strings.TrimPrefix(hostport[:i], "[")
-	}
-	return hostport[:colon]
 }

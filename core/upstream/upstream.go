@@ -2,6 +2,7 @@ package upstream
 
 import (
 	"errors"
+	"math/rand"
 	"net"
 	"net/url"
 	"time"
@@ -39,7 +40,12 @@ type UpstreamTypeDgram struct {
 }
 
 func (this *Upstream) SelectTcp(key int, dial bool) (UpstreamTcpConn, error) {
-	addrStr := this.List[key%len(this.List)]
+	var addrStr string
+	if key == -1 {
+		addrStr = this.List[rand.Intn(len(this.List))]
+	} else {
+		addrStr = this.List[key%len(this.List)]
+	}
 	urla, err := url.Parse(addrStr)
 	if err != nil {
 		return UpstreamTcpConn{}, err

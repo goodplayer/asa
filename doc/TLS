@@ -1,0 +1,33 @@
+handshakes:
+1. RSA
+key exchange: using private key
+authentication: RSA
+exchange info: clear
+process:
+  1. client hello (random + cipher + SNI)
+  2. server hello (random + pub key + cert)
+  3. client key exchange: create a random premaster secret
+  4. send the secret to server
+  5. server decrypt the secret
+  6. both finish handshakes
+private key usage: decrypt
+2. DH
+key exchange: not private key, forward secrecy, cannot decrypt old data when private key exposed
+authentication: RSA/DSA, support ECDSA
+  1. client hello (random + cipher + SNI)
+  2. server hello (random + cert)
+  3. server send: DH param + signature
+  4. client DH param and signature validation
+  5. both calculate premaster secret
+  6. both finish handshakes
+private key usage: signature
+
+components:
+1. session key: for encryption
+2. client and server random: nonce
+3. Pre-master secret: ??
+4. cipher suite: handshakes, cert type(RSA/DSA), encryption cipher, hash function
+
+session resumption:
+1. session id
+2. session ticket
