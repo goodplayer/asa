@@ -15,13 +15,6 @@ func NewBalancer(strategy api.PickStrategy) api.LoadBalancer {
 	panic(api.ErrUnsupportedStrategy)
 }
 
-type LoadBalancer struct {
-}
-
-func (this *LoadBalancer) Pick(key interface{}) (*api.Endpoint, error) {
-	panic("implement me")
-}
-
 type WeightLoadBalancer struct {
 }
 
