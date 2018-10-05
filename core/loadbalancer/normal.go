@@ -10,7 +10,7 @@ import (
 
 const (
 	_SUB_ARRAY_SHIFT = 8
-	_SUB_ARRAY_MASK  = 2 ^ _SUB_ARRAY_SHIFT - 1
+	_SUB_ARRAY_MASK  = (1 << _SUB_ARRAY_SHIFT) - 1
 )
 
 type LoadBalancer struct {
@@ -27,7 +27,11 @@ func NewLoadBalancer(strategy api.PickStrategy) api.LoadBalancer {
 	lb.strategy = strategy
 	lb.cnt = 0
 	lb.mapping = make(map[int]int)
-	//TODO
+	//TODO dynamic increase
+	lb.data = make([][]*api.Endpoint, 1024)
+	for i := range lb.data {
+		lb.data[i] = make([]*api.Endpoint, 1<<_SUB_ARRAY_SHIFT)
+	}
 	return lb
 }
 
@@ -47,12 +51,34 @@ func twoIdx(idx int) (int, int) {
 	return idx >> _SUB_ARRAY_SHIFT, idx & _SUB_ARRAY_MASK
 }
 
-func (this *LoadBalancer) Add(key interface{}) {
-	//TODO
+func (this *LoadBalancer) Add(key interface{}, node *api.Endpoint) {
+	switch this.strategy {
+	case api.RANDOM:
+		this.addRandom(key.(int), node)
+		return
+	case api.ROUND_ROBIN:
+		//TODO
+		return
+	case api.FIXED_KEY:
+		//TODO
+		return
+	}
+	panic("implement me")
 }
 
 func (this *LoadBalancer) Remove(key interface{}) {
-	//TODO
+	switch this.strategy {
+	case api.RANDOM:
+		this.removeRandom(key.(int))
+		return
+	case api.ROUND_ROBIN:
+		//TODO
+		return
+	case api.FIXED_KEY:
+		//TODO
+		return
+	}
+	panic("implement me")
 }
 
 func (this *LoadBalancer) pickRandom() (*api.Endpoint, error) {
@@ -67,4 +93,31 @@ func (this *LoadBalancer) pickRandom() (*api.Endpoint, error) {
 	endpoint := this.data[firstIdx][secondIdx]
 	this.lock.RUnlock()
 	return endpoint, nil
+}
+
+func (this *LoadBalancer) addRandom(i int, endpoint *api.Endpoint) {
+	this.lock.Lock()
+	cnt := this.cnt
+	firstIdx, secondIdx := twoIdx(cnt)
+	this.data[firstIdx][secondIdx] = endpoint
+	this.cnt++
+	this.mapping[i] = cnt
+	this.lock.Unlock()
+}
+
+func (this *LoadBalancer) removeRandom(i int) {
+	this.lock.Lock()
+	idx, ok := this.mapping[i]
+	if !ok {
+		this.lock.Unlock()
+		return
+	}
+
+	// last
+	firstIdx, secondIdx := twoIdx(this.cnt - 1)
+	last := this.data[firstIdx][secondIdx]
+
+	newFirstIdx, newSecondIdx := twoIdx(idx)
+	this.data[newFirstIdx][newSecondIdx] = last
+	this.lock.Unlock()
 }

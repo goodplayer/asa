@@ -19,4 +19,5 @@ type LoadBalancer interface {
 }
 
 type Endpoint struct {
+	Id int
 }
