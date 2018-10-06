@@ -20,13 +20,27 @@ type LoadBalancer struct {
 	mapping map[int]int
 	cnt     int
 	lock    sync.RWMutex
+
+	afterRemove func()
+
+	curIdx int
 }
 
 func NewLoadBalancer(strategy api.PickStrategy) api.LoadBalancer {
 	lb := new(LoadBalancer)
 	lb.strategy = strategy
 	lb.cnt = 0
+	lb.curIdx = 0
+
+	switch strategy {
+	case api.ROUND_ROBIN:
+		lb.afterRemove = lb.fixCurIdx
+	default:
+		lb.afterRemove = func() {}
+	}
+
 	lb.mapping = make(map[int]int)
+
 	//TODO dynamic increase
 	lb.data = make([][]*api.Endpoint, 1024)
 	for i := range lb.data {
@@ -40,7 +54,7 @@ func (this *LoadBalancer) Pick(key interface{}) (*api.Endpoint, error) {
 	case api.RANDOM:
 		return this.pickRandom()
 	case api.ROUND_ROBIN:
-		//TODO
+		return this.pickRoundRobin()
 	case api.FIXED_KEY:
 		//TODO
 	}
@@ -57,7 +71,7 @@ func (this *LoadBalancer) Add(key interface{}, node *api.Endpoint) {
 		this.addRandom(key.(int), node)
 		return
 	case api.ROUND_ROBIN:
-		//TODO
+		this.addRandom(key.(int), node)
 		return
 	case api.FIXED_KEY:
 		//TODO
@@ -72,7 +86,7 @@ func (this *LoadBalancer) Remove(key interface{}) {
 		this.removeRandom(key.(int))
 		return
 	case api.ROUND_ROBIN:
-		//TODO
+		this.removeRandom(key.(int))
 		return
 	case api.FIXED_KEY:
 		//TODO
@@ -106,6 +120,7 @@ func (this *LoadBalancer) addRandom(i int, endpoint *api.Endpoint) {
 }
 
 func (this *LoadBalancer) removeRandom(i int) {
+	//FIXME there are some problems dealing with map/index
 	this.lock.Lock()
 	idx, ok := this.mapping[i]
 	if !ok {
@@ -114,10 +129,28 @@ func (this *LoadBalancer) removeRandom(i int) {
 	}
 
 	// last
-	firstIdx, secondIdx := twoIdx(this.cnt - 1)
+	newCnt := this.cnt - 1
+	firstIdx, secondIdx := twoIdx(newCnt)
 	last := this.data[firstIdx][secondIdx]
 
 	newFirstIdx, newSecondIdx := twoIdx(idx)
 	this.data[newFirstIdx][newSecondIdx] = last
+	this.cnt = newCnt
+	delete(this.mapping, i)
+
+	//finally
+	this.afterRemove()
+
 	this.lock.Unlock()
+}
+
+func (this *LoadBalancer) fixCurIdx() {
+	if this.curIdx >= this.cnt {
+		this.curIdx = 0
+	}
+}
+
+func (this *LoadBalancer) pickRoundRobin() (*api.Endpoint, error) {
+	//TODO
+	return nil, nil
 }

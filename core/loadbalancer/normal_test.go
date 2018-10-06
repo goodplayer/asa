@@ -85,3 +85,27 @@ func TestLoadBalancer_Pick(t *testing.T) {
 		t.Fatal("rand is not well distributed")
 	}
 }
+
+func BenchmarkLoadBalancer_Pick(b *testing.B) {
+	lb := NewLoadBalancer(api.RANDOM)
+	lbImpl := lb.(*LoadBalancer)
+	for i := 0; i < 256*16; i++ {
+		endpoint := new(api.Endpoint)
+		endpoint.Id = i
+		lbImpl.Add(i, endpoint)
+	}
+	endpoint, err := lbImpl.Pick(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	if endpoint == nil {
+		b.Fatal("pick nil")
+	}
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			lb.Pick(nil)
+		}
+	})
+}
