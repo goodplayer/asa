@@ -151,6 +151,19 @@ func (this *LoadBalancer) fixCurIdx() {
 }
 
 func (this *LoadBalancer) pickRoundRobin() (*api.Endpoint, error) {
-	//TODO
-	return nil, nil
+	this.lock.RLock()
+	cnt := this.cnt
+	if cnt <= 0 {
+		this.lock.RUnlock()
+		return nil, errors.New("no element found")
+	}
+	idx := this.curIdx
+	firstIdx, secondIdx := twoIdx(idx)
+	endpoint := this.data[firstIdx][secondIdx]
+
+	this.curIdx += 1
+	this.fixCurIdx()
+
+	this.lock.RUnlock()
+	return endpoint, nil
 }
