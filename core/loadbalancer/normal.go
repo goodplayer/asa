@@ -114,13 +114,13 @@ func (this *LoadBalancer) addRandom(i int, endpoint *api.Endpoint) {
 	cnt := this.cnt
 	firstIdx, secondIdx := twoIdx(cnt)
 	this.data[firstIdx][secondIdx] = endpoint
+	endpoint.Id = i
 	this.cnt++
 	this.mapping[i] = cnt
 	this.lock.Unlock()
 }
 
 func (this *LoadBalancer) removeRandom(i int) {
-	//FIXME there are some problems dealing with map/index
 	this.lock.Lock()
 	idx, ok := this.mapping[i]
 	if !ok {
@@ -137,6 +137,7 @@ func (this *LoadBalancer) removeRandom(i int) {
 	this.data[newFirstIdx][newSecondIdx] = last
 	this.cnt = newCnt
 	delete(this.mapping, i)
+	this.mapping[last.Id] = idx
 
 	//finally
 	this.afterRemove()
