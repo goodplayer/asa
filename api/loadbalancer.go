@@ -5,7 +5,7 @@ import "errors"
 type PickStrategy int
 
 const (
-	RANDOM PickStrategy = iota
+	RANDOM      PickStrategy = iota
 	ROUND_ROBIN
 	FIXED_KEY
 )
@@ -19,5 +19,5 @@ type LoadBalancer interface {
 }
 
 type Endpoint struct {
-	Id int
+	Id int64
 }

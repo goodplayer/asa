@@ -9,7 +9,7 @@ import (
 func TestLoadBalancer_Add(t *testing.T) {
 	lb := NewLoadBalancer(api.RANDOM)
 	lbImpl := lb.(*LoadBalancer)
-	lbImpl.Add(1, new(api.Endpoint))
+	lbImpl.Add(int64(1), new(api.Endpoint))
 	if _, ok := lbImpl.mapping[1]; !ok {
 		t.Fatal("mapping does not contains key 1")
 	}
@@ -24,7 +24,7 @@ func TestLoadBalancer_Add(t *testing.T) {
 func TestLoadBalancer_Add_size256(t *testing.T) {
 	lb := NewLoadBalancer(api.RANDOM)
 	lbImpl := lb.(*LoadBalancer)
-	for i := 0; i < 256+1; i++ {
+	for i := int64(0); i < 256+1; i++ {
 		lbImpl.Add(i, new(api.Endpoint))
 	}
 	if _, ok := lbImpl.mapping[256+1-1]; !ok {
@@ -46,7 +46,7 @@ func TestLoadBalancer_Add_size256(t *testing.T) {
 func TestLoadBalancer_Pick(t *testing.T) {
 	lb := NewLoadBalancer(api.RANDOM)
 	lbImpl := lb.(*LoadBalancer)
-	for i := 0; i < 256+1; i++ {
+	for i := int64(0); i < 256+1; i++ {
 		endpoint := new(api.Endpoint)
 		endpoint.Id = i
 		lbImpl.Add(i, endpoint)
@@ -59,7 +59,7 @@ func TestLoadBalancer_Pick(t *testing.T) {
 		t.Fatal("pick nil")
 	}
 
-	distribMap := make(map[int]int)
+	distribMap := make(map[int64]int)
 	for i := 0; i < 1000000; i++ {
 		endpoint, err := lbImpl.Pick(nil)
 		if err != nil {
@@ -89,7 +89,7 @@ func TestLoadBalancer_Pick(t *testing.T) {
 func BenchmarkLoadBalancer_Pick(b *testing.B) {
 	lb := NewLoadBalancer(api.RANDOM)
 	lbImpl := lb.(*LoadBalancer)
-	for i := 0; i < 256*16; i++ {
+	for i := int64(0); i < 256*16; i++ {
 		endpoint := new(api.Endpoint)
 		endpoint.Id = i
 		lbImpl.Add(i, endpoint)

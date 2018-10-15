@@ -17,7 +17,7 @@ type LoadBalancer struct {
 	strategy api.PickStrategy
 
 	data    [][]*api.Endpoint
-	mapping map[int]int
+	mapping map[int64]int
 	cnt     int
 	lock    sync.RWMutex
 
@@ -39,7 +39,7 @@ func NewLoadBalancer(strategy api.PickStrategy) api.LoadBalancer {
 		lb.afterRemove = func() {}
 	}
 
-	lb.mapping = make(map[int]int)
+	lb.mapping = make(map[int64]int)
 
 	//TODO dynamic increase
 	lb.data = make([][]*api.Endpoint, 1024)
@@ -68,10 +68,10 @@ func twoIdx(idx int) (int, int) {
 func (this *LoadBalancer) Add(key interface{}, node *api.Endpoint) {
 	switch this.strategy {
 	case api.RANDOM:
-		this.addRandom(key.(int), node)
+		this.addRandom(key.(int64), node)
 		return
 	case api.ROUND_ROBIN:
-		this.addRandom(key.(int), node)
+		this.addRandom(key.(int64), node)
 		return
 	case api.FIXED_KEY:
 		//TODO
@@ -83,10 +83,10 @@ func (this *LoadBalancer) Add(key interface{}, node *api.Endpoint) {
 func (this *LoadBalancer) Remove(key interface{}) {
 	switch this.strategy {
 	case api.RANDOM:
-		this.removeRandom(key.(int))
+		this.removeRandom(key.(int64))
 		return
 	case api.ROUND_ROBIN:
-		this.removeRandom(key.(int))
+		this.removeRandom(key.(int64))
 		return
 	case api.FIXED_KEY:
 		//TODO
@@ -109,7 +109,7 @@ func (this *LoadBalancer) pickRandom() (*api.Endpoint, error) {
 	return endpoint, nil
 }
 
-func (this *LoadBalancer) addRandom(i int, endpoint *api.Endpoint) {
+func (this *LoadBalancer) addRandom(i int64, endpoint *api.Endpoint) {
 	this.lock.Lock()
 	cnt := this.cnt
 	firstIdx, secondIdx := twoIdx(cnt)
@@ -120,7 +120,7 @@ func (this *LoadBalancer) addRandom(i int, endpoint *api.Endpoint) {
 	this.lock.Unlock()
 }
 
-func (this *LoadBalancer) removeRandom(i int) {
+func (this *LoadBalancer) removeRandom(i int64) {
 	this.lock.Lock()
 	idx, ok := this.mapping[i]
 	if !ok {
