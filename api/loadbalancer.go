@@ -16,6 +16,8 @@ var (
 
 type LoadBalancer interface {
 	Pick(key interface{}) (*Endpoint, error)
+	Add(key interface{}, node *Endpoint)
+	Remove(key interface{})
 }
 
 type Endpoint struct {
